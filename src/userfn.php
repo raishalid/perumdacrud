@@ -35,7 +35,7 @@ function GetStartsWithAFilter($FldExpression, $dbid = 0)
 // Database Connecting event
 function Database_Connecting(&$info)
 {
-    if (ew_CurrentUserIP() == "127.0.0.1") { // setting koneksi database di komputer localhost
+    if (CurrentUserIP() == "127.0.0.1") { // setting koneksi database di komputer localhost
         $info["host"] = "localhost";
         $info["user"] = "root"; // sesuaikan dengan username database di komputer localhost
         $info["pass"] = ""; // sesuaikan dengan password database di komputer localhost
