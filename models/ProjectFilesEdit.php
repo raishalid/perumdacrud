@@ -280,6 +280,8 @@ class ProjectFilesEdit extends ProjectFiles
         if (is_object($rs)) { // Recordset
             while ($rs && !$rs->EOF) {
                 $this->loadRowValues($rs); // Set up DbValue/CurrentValue
+                $this->file_path->OldUploadPath = $this->file_path->getUploadPath(); // PHP
+                $this->file_path->UploadPath = $this->file_path->OldUploadPath;
                 $row = $this->getRecordFromArray($rs->fields);
                 if ($current) {
                     return $row;
@@ -748,6 +750,8 @@ class ProjectFilesEdit extends ProjectFiles
             }
             $this->updated_at->CurrentValue = UnFormatDateTime($this->updated_at->CurrentValue, $this->updated_at->formatPattern());
         }
+		$this->file_path->OldUploadPath = $this->file_path->getUploadPath(); // PHP
+		$this->file_path->UploadPath = $this->file_path->OldUploadPath;
         $this->getUploadFiles(); // Get upload files
     }
 
@@ -926,6 +930,7 @@ class ProjectFilesEdit extends ProjectFiles
             $this->file_name->ViewValue = $this->file_name->CurrentValue;
 
             // file_path
+            $this->file_path->UploadPath = $this->file_path->getUploadPath(); // PHP
             if (!EmptyValue($this->file_path->Upload->DbValue)) {
                 $this->file_path->ViewValue = $this->file_path->Upload->DbValue;
             } else {
@@ -1037,6 +1042,7 @@ class ProjectFilesEdit extends ProjectFiles
 
             // file_path
             $this->file_path->setupEditAttributes();
+            $this->file_path->UploadPath = $this->file_path->getUploadPath(); // PHP
             if (!EmptyValue($this->file_path->Upload->DbValue)) {
                 $this->file_path->EditValue = $this->file_path->Upload->DbValue;
             } else {
@@ -1184,6 +1190,8 @@ class ProjectFilesEdit extends ProjectFiles
         } else {
             // Save old values
             $this->loadDbValues($rsold);
+            $this->file_path->OldUploadPath = $this->file_path->getUploadPath(); // PHP
+            $this->file_path->UploadPath = $this->file_path->OldUploadPath;
         }
 
         // Set new row
@@ -1243,6 +1251,7 @@ class ProjectFilesEdit extends ProjectFiles
             }
         }
         if ($this->file_path->Visible && !$this->file_path->Upload->KeepFile) {
+            $this->file_path->UploadPath = $this->file_path->getUploadPath(); // PHP
             $oldFiles = EmptyValue($this->file_path->Upload->DbValue) ? [] : [$this->file_path->htmlDecode($this->file_path->Upload->DbValue)];
             if (!EmptyValue($this->file_path->Upload->FileName)) {
                 $newFiles = [$this->file_path->Upload->FileName];

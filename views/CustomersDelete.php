@@ -123,7 +123,8 @@ while (!$Page->Recordset->EOF) {
         <td<?= $Page->photo->cellAttributes() ?>>
 <span id="">
 <span<?= $Page->photo->viewAttributes() ?>>
-<?= $Page->photo->getViewValue() ?></span>
+<?= GetFileViewTag($Page->photo, $Page->photo->getViewValue(), false) ?>
+</span>
 </span>
 </td>
 <?php } ?>

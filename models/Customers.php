@@ -203,18 +203,18 @@ class Customers extends DbTable
             200, // Type
             255, // Size
             -1, // Date/Time format
-            false, // Is upload field
+            true, // Is upload field
             '`photo`', // Virtual expression
             false, // Is virtual
             false, // Force selection
             false, // Is Virtual search
             'FORMATTED TEXT', // View Tag
-            'TEXT' // Edit Tag
+            'FILE' // Edit Tag
         );
         $this->photo->InputTextType = "text";
         $this->photo->Nullable = false; // NOT NULL field
         $this->photo->Required = true; // Required field
-        $this->photo->SearchOperators = ["=", "<>", "IN", "NOT IN", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY"];
+        $this->photo->SearchOperators = ["=", "<>", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY"];
         $this->Fields['photo'] = &$this->photo;
 
         // product_id
@@ -785,7 +785,7 @@ class Customers extends DbTable
         $this->name->DbValue = $row['name'];
         $this->slug->DbValue = $row['slug'];
         $this->review->DbValue = $row['review'];
-        $this->photo->DbValue = $row['photo'];
+        $this->photo->Upload->DbValue = $row['photo'];
         $this->product_id->DbValue = $row['product_id'];
         $this->service_id->DbValue = $row['service_id'];
         $this->created_at->DbValue = $row['created_at'];
@@ -796,6 +796,12 @@ class Customers extends DbTable
     public function deleteUploadedFiles($row)
     {
         $this->loadDbValues($row);
+        $oldFiles = EmptyValue($row['photo']) ? [] : [$row['photo']];
+        foreach ($oldFiles as $oldFile) {
+            if (file_exists($this->photo->oldPhysicalUploadPath() . $oldFile)) {
+                @unlink($this->photo->oldPhysicalUploadPath() . $oldFile);
+            }
+        }
     }
 
     // Record filter WHERE clause
@@ -1147,7 +1153,7 @@ class Customers extends DbTable
         $this->name->setDbValue($row['name']);
         $this->slug->setDbValue($row['slug']);
         $this->review->setDbValue($row['review']);
-        $this->photo->setDbValue($row['photo']);
+        $this->photo->Upload->DbValue = $row['photo'];
         $this->product_id->setDbValue($row['product_id']);
         $this->service_id->setDbValue($row['service_id']);
         $this->created_at->setDbValue($row['created_at']);
@@ -1213,7 +1219,11 @@ class Customers extends DbTable
         $this->review->ViewValue = $this->review->CurrentValue;
 
         // photo
-        $this->photo->ViewValue = $this->photo->CurrentValue;
+        if (!EmptyValue($this->photo->Upload->DbValue)) {
+            $this->photo->ViewValue = $this->photo->Upload->DbValue;
+        } else {
+            $this->photo->ViewValue = "";
+        }
 
         // product_id
         $this->product_id->ViewValue = $this->product_id->CurrentValue;
@@ -1249,6 +1259,7 @@ class Customers extends DbTable
 
         // photo
         $this->photo->HrefValue = "";
+        $this->photo->ExportHrefValue = $this->photo->UploadPath . $this->photo->Upload->DbValue;
         $this->photo->TooltipValue = "";
 
         // product_id
@@ -1309,11 +1320,14 @@ class Customers extends DbTable
 
         // photo
         $this->photo->setupEditAttributes();
-        if (!$this->photo->Raw) {
-            $this->photo->CurrentValue = HtmlDecode($this->photo->CurrentValue);
+        if (!EmptyValue($this->photo->Upload->DbValue)) {
+            $this->photo->EditValue = $this->photo->Upload->DbValue;
+        } else {
+            $this->photo->EditValue = "";
         }
-        $this->photo->EditValue = $this->photo->CurrentValue;
-        $this->photo->PlaceHolder = RemoveHtml($this->photo->caption());
+        if (!EmptyValue($this->photo->CurrentValue)) {
+            $this->photo->Upload->FileName = $this->photo->CurrentValue;
+        }
 
         // product_id
         $this->product_id->setupEditAttributes();
@@ -1448,8 +1462,122 @@ class Customers extends DbTable
     public function getFileData($fldparm, $key, $resize, $width = 0, $height = 0, $plugins = [])
     {
         global $DownloadFileName;
+        $width = ($width > 0) ? $width : Config("THUMBNAIL_DEFAULT_WIDTH");
+        $height = ($height > 0) ? $height : Config("THUMBNAIL_DEFAULT_HEIGHT");
 
-        // No binary fields
+        // Set up field name / file name field / file type field
+        $fldName = "";
+        $fileNameFld = "";
+        $fileTypeFld = "";
+        if ($fldparm == 'photo') {
+            $fldName = "photo";
+            $fileNameFld = "photo";
+        } else {
+            return false; // Incorrect field
+        }
+
+        // Set up key values
+        $ar = explode(Config("COMPOSITE_KEY_SEPARATOR"), $key);
+        if (count($ar) == 1) {
+            $this->id->CurrentValue = $ar[0];
+        } else {
+            return false; // Incorrect key
+        }
+
+        // Set up filter (WHERE Clause)
+        $filter = $this->getRecordFilter();
+        $this->CurrentFilter = $filter;
+        $sql = $this->getCurrentSql();
+        $conn = $this->getConnection();
+        $dbtype = GetConnectionType($this->Dbid);
+        if ($row = $conn->fetchAssociative($sql)) {
+            $val = $row[$fldName];
+            if (!EmptyValue($val)) {
+                $fld = $this->Fields[$fldName];
+
+                // Binary data
+                if ($fld->DataType == DATATYPE_BLOB) {
+                    if ($dbtype != "MYSQL") {
+                        if (is_resource($val) && get_resource_type($val) == "stream") { // Byte array
+                            $val = stream_get_contents($val);
+                        }
+                    }
+                    if ($resize) {
+                        ResizeBinary($val, $width, $height, $plugins);
+                    }
+
+                    // Write file type
+                    if ($fileTypeFld != "" && !EmptyValue($row[$fileTypeFld])) {
+                        AddHeader("Content-type", $row[$fileTypeFld]);
+                    } else {
+                        AddHeader("Content-type", ContentType($val));
+                    }
+
+                    // Write file name
+                    $downloadPdf = !Config("EMBED_PDF") && Config("DOWNLOAD_PDF_FILE");
+                    if ($fileNameFld != "" && !EmptyValue($row[$fileNameFld])) {
+                        $fileName = $row[$fileNameFld];
+                        $ext = strtolower($pathinfo["extension"] ?? "");
+                        $isPdf = SameText($ext, "pdf");
+                        if ($downloadPdf || !$isPdf) { // Skip header if not download PDF
+                            AddHeader("Content-Disposition", "attachment; filename=\"" . $fileName . "\"");
+                        }
+                    } else {
+                        $ext = ContentExtension($val);
+                        $isPdf = SameText($ext, ".pdf");
+                        if ($isPdf && $downloadPdf) { // Add header if download PDF
+                            AddHeader("Content-Disposition", "attachment" . ($DownloadFileName ? "; filename=\"" . $DownloadFileName . "\"" : ""));
+                        }
+                    }
+
+                    // Write file data
+                    if (
+                        StartsString("PK", $val) &&
+                        ContainsString($val, "[Content_Types].xml") &&
+                        ContainsString($val, "_rels") &&
+                        ContainsString($val, "docProps")
+                    ) { // Fix Office 2007 documents
+                        if (!EndsString("\0\0\0", $val)) { // Not ends with 3 or 4 \0
+                            $val .= "\0\0\0\0";
+                        }
+                    }
+
+                    // Clear any debug message
+                    if (ob_get_length()) {
+                        ob_end_clean();
+                    }
+
+                    // Write binary data
+                    Write($val);
+
+                // Upload to folder
+                } else {
+                    if ($fld->UploadMultiple) {
+                        $files = explode(Config("MULTIPLE_UPLOAD_SEPARATOR"), $val);
+                    } else {
+                        $files = [$val];
+                    }
+                    $data = [];
+                    $ar = [];
+                    if ($fld->hasMethod("getUploadPath")) { // Check field level upload path
+                        $fld->UploadPath = $fld->getUploadPath();
+                    }
+                    foreach ($files as $file) {
+                        if (!EmptyValue($file)) {
+                            if (Config("ENCRYPT_FILE_PATH")) {
+                                $ar[$file] = FullUrl(GetApiUrl(Config("API_FILE_ACTION") .
+                                    "/" . $this->TableVar . "/" . Encrypt($fld->physicalUploadPath() . $file)));
+                            } else {
+                                $ar[$file] = FullUrl($fld->hrefPath() . $file);
+                            }
+                        }
+                    }
+                    $data[$fld->Param] = $ar;
+                    WriteJson($data);
+                }
+            }
+            return true;
+        }
         return false;
     }
 

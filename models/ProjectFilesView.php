@@ -316,6 +316,8 @@ class ProjectFilesView extends ProjectFiles
         if (is_object($rs)) { // Recordset
             while ($rs && !$rs->EOF) {
                 $this->loadRowValues($rs); // Set up DbValue/CurrentValue
+                $this->file_path->OldUploadPath = $this->file_path->getUploadPath(); // PHP
+                $this->file_path->UploadPath = $this->file_path->OldUploadPath;
                 $row = $this->getRecordFromArray($rs->fields);
                 if ($current) {
                     return $row;
@@ -828,6 +830,7 @@ class ProjectFilesView extends ProjectFiles
             $this->file_name->ViewValue = $this->file_name->CurrentValue;
 
             // file_path
+            $this->file_path->UploadPath = $this->file_path->getUploadPath(); // PHP
             if (!EmptyValue($this->file_path->Upload->DbValue)) {
                 $this->file_path->ViewValue = $this->file_path->Upload->DbValue;
             } else {

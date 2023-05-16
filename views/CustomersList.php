@@ -223,7 +223,8 @@ $Page->ListOptions->render("body", "left", $Page->RowCount);
         <td data-name="photo"<?= $Page->photo->cellAttributes() ?>>
 <span id="el<?= $Page->RowIndex == '$rowindex$' ? '$rowindex$' : $Page->RowCount ?>_customers_photo" class="el_customers_photo">
 <span<?= $Page->photo->viewAttributes() ?>>
-<?= $Page->photo->getViewValue() ?></span>
+<?= GetFileViewTag($Page->photo, $Page->photo->getViewValue(), false) ?>
+</span>
 </span>
 </td>
     <?php } ?>

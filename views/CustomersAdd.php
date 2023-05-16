@@ -25,7 +25,7 @@ loadjs.ready(["wrapper", "head"], function () {
             ["name", [fields.name.visible && fields.name.required ? ew.Validators.required(fields.name.caption) : null], fields.name.isInvalid],
             ["slug", [fields.slug.visible && fields.slug.required ? ew.Validators.required(fields.slug.caption) : null], fields.slug.isInvalid],
             ["review", [fields.review.visible && fields.review.required ? ew.Validators.required(fields.review.caption) : null], fields.review.isInvalid],
-            ["photo", [fields.photo.visible && fields.photo.required ? ew.Validators.required(fields.photo.caption) : null], fields.photo.isInvalid],
+            ["photo", [fields.photo.visible && fields.photo.required ? ew.Validators.fileRequired(fields.photo.caption) : null], fields.photo.isInvalid],
             ["product_id", [fields.product_id.visible && fields.product_id.required ? ew.Validators.required(fields.product_id.caption) : null, ew.Validators.integer], fields.product_id.isInvalid],
             ["service_id", [fields.service_id.visible && fields.service_id.required ? ew.Validators.required(fields.service_id.caption) : null, ew.Validators.integer], fields.service_id.isInvalid],
             ["created_at", [fields.created_at.visible && fields.created_at.required ? ew.Validators.required(fields.created_at.caption) : null], fields.created_at.isInvalid],
@@ -112,12 +112,35 @@ $Page->showMessage();
 <?php } ?>
 <?php if ($Page->photo->Visible) { // photo ?>
     <div id="r_photo"<?= $Page->photo->rowAttributes() ?>>
-        <label id="elh_customers_photo" for="x_photo" class="<?= $Page->LeftColumnClass ?>"><?= $Page->photo->caption() ?><?= $Page->photo->Required ? $Language->phrase("FieldRequiredIndicator") : "" ?></label>
+        <label id="elh_customers_photo" class="<?= $Page->LeftColumnClass ?>"><?= $Page->photo->caption() ?><?= $Page->photo->Required ? $Language->phrase("FieldRequiredIndicator") : "" ?></label>
         <div class="<?= $Page->RightColumnClass ?>"><div<?= $Page->photo->cellAttributes() ?>>
 <span id="el_customers_photo">
-<input type="<?= $Page->photo->getInputTextType() ?>" name="x_photo" id="x_photo" data-table="customers" data-field="x_photo" value="<?= $Page->photo->EditValue ?>" size="30" maxlength="255" placeholder="<?= HtmlEncode($Page->photo->getPlaceHolder()) ?>" data-format-pattern="<?= HtmlEncode($Page->photo->formatPattern()) ?>"<?= $Page->photo->editAttributes() ?> aria-describedby="x_photo_help">
-<?= $Page->photo->getCustomMessage() ?>
-<div class="invalid-feedback"><?= $Page->photo->getErrorMessage() ?></div>
+<div id="fd_x_photo" class="fileinput-button ew-file-drop-zone">
+    <input
+        type="file"
+        id="x_photo"
+        name="x_photo"
+        class="form-control ew-file-input"
+        title="<?= $Page->photo->title() ?>"
+        lang="<?= CurrentLanguageID() ?>"
+        data-table="customers"
+        data-field="x_photo"
+        data-size="255"
+        data-accept-file-types="<?= $Page->photo->acceptFileTypes() ?>"
+        data-max-file-size="<?= $Page->photo->UploadMaxFileSize ?>"
+        data-max-number-of-files="null"
+        data-disable-image-crop="<?= $Page->photo->ImageCropper ? 0 : 1 ?>"
+        aria-describedby="x_photo_help"
+        <?= ($Page->photo->ReadOnly || $Page->photo->Disabled) ? " disabled" : "" ?>
+        <?= $Page->photo->editAttributes() ?>
+    >
+    <div class="text-muted ew-file-text"><?= $Language->phrase("ChooseFile") ?></div>
+    <?= $Page->photo->getCustomMessage() ?>
+    <div class="invalid-feedback"><?= $Page->photo->getErrorMessage() ?></div>
+</div>
+<input type="hidden" name="fn_x_photo" id= "fn_x_photo" value="<?= $Page->photo->Upload->FileName ?>">
+<input type="hidden" name="fa_x_photo" id= "fa_x_photo" value="0">
+<table id="ft_x_photo" class="table table-sm float-start ew-upload-table"><tbody class="files"></tbody></table>
 </span>
 </div></div>
     </div>

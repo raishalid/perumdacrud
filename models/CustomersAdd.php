@@ -632,6 +632,9 @@ class CustomersAdd extends Customers
     protected function getUploadFiles()
     {
         global $CurrentForm, $Language;
+        $this->photo->Upload->Index = $CurrentForm->Index;
+        $this->photo->Upload->uploadFile();
+        $this->photo->CurrentValue = $this->photo->Upload->FileName;
     }
 
     // Load default values
@@ -673,16 +676,6 @@ class CustomersAdd extends Customers
                 $this->review->Visible = false; // Disable update for API request
             } else {
                 $this->review->setFormValue($val);
-            }
-        }
-
-        // Check field name 'photo' first before field var 'x_photo'
-        $val = $CurrentForm->hasValue("photo") ? $CurrentForm->getValue("photo") : $CurrentForm->getValue("x_photo");
-        if (!$this->photo->IsDetailKey) {
-            if (IsApi() && $val === null) {
-                $this->photo->Visible = false; // Disable update for API request
-            } else {
-                $this->photo->setFormValue($val);
             }
         }
 
@@ -730,6 +723,7 @@ class CustomersAdd extends Customers
 
         // Check field name 'id' first before field var 'x_id'
         $val = $CurrentForm->hasValue("id") ? $CurrentForm->getValue("id") : $CurrentForm->getValue("x_id");
+        $this->getUploadFiles(); // Get upload files
     }
 
     // Restore form values
@@ -739,7 +733,6 @@ class CustomersAdd extends Customers
         $this->name->CurrentValue = $this->name->FormValue;
         $this->slug->CurrentValue = $this->slug->FormValue;
         $this->review->CurrentValue = $this->review->FormValue;
-        $this->photo->CurrentValue = $this->photo->FormValue;
         $this->product_id->CurrentValue = $this->product_id->FormValue;
         $this->service_id->CurrentValue = $this->service_id->FormValue;
         $this->created_at->CurrentValue = $this->created_at->FormValue;
@@ -799,7 +792,8 @@ class CustomersAdd extends Customers
         $this->name->setDbValue($row['name']);
         $this->slug->setDbValue($row['slug']);
         $this->review->setDbValue($row['review']);
-        $this->photo->setDbValue($row['photo']);
+        $this->photo->Upload->DbValue = $row['photo'];
+        $this->photo->setDbValue($this->photo->Upload->DbValue);
         $this->product_id->setDbValue($row['product_id']);
         $this->service_id->setDbValue($row['service_id']);
         $this->created_at->setDbValue($row['created_at']);
@@ -895,7 +889,11 @@ class CustomersAdd extends Customers
             $this->review->ViewValue = $this->review->CurrentValue;
 
             // photo
-            $this->photo->ViewValue = $this->photo->CurrentValue;
+            if (!EmptyValue($this->photo->Upload->DbValue)) {
+                $this->photo->ViewValue = $this->photo->Upload->DbValue;
+            } else {
+                $this->photo->ViewValue = "";
+            }
 
             // product_id
             $this->product_id->ViewValue = $this->product_id->CurrentValue;
@@ -924,6 +922,7 @@ class CustomersAdd extends Customers
 
             // photo
             $this->photo->HrefValue = "";
+            $this->photo->ExportHrefValue = $this->photo->UploadPath . $this->photo->Upload->DbValue;
 
             // product_id
             $this->product_id->HrefValue = "";
@@ -960,11 +959,17 @@ class CustomersAdd extends Customers
 
             // photo
             $this->photo->setupEditAttributes();
-            if (!$this->photo->Raw) {
-                $this->photo->CurrentValue = HtmlDecode($this->photo->CurrentValue);
+            if (!EmptyValue($this->photo->Upload->DbValue)) {
+                $this->photo->EditValue = $this->photo->Upload->DbValue;
+            } else {
+                $this->photo->EditValue = "";
             }
-            $this->photo->EditValue = HtmlEncode($this->photo->CurrentValue);
-            $this->photo->PlaceHolder = RemoveHtml($this->photo->caption());
+            if (!EmptyValue($this->photo->CurrentValue)) {
+                $this->photo->Upload->FileName = $this->photo->CurrentValue;
+            }
+            if ($this->isShow() || $this->isCopy()) {
+                RenderUploadField($this->photo);
+            }
 
             // product_id
             $this->product_id->setupEditAttributes();
@@ -999,6 +1004,7 @@ class CustomersAdd extends Customers
 
             // photo
             $this->photo->HrefValue = "";
+            $this->photo->ExportHrefValue = $this->photo->UploadPath . $this->photo->Upload->DbValue;
 
             // product_id
             $this->product_id->HrefValue = "";
@@ -1048,7 +1054,7 @@ class CustomersAdd extends Customers
             }
         }
         if ($this->photo->Visible && $this->photo->Required) {
-            if (!$this->photo->IsDetailKey && EmptyValue($this->photo->FormValue)) {
+            if ($this->photo->Upload->FileName == "" && !$this->photo->Upload->KeepFile) {
                 $this->photo->addErrorMessage(str_replace("%s", $this->photo->caption(), $this->photo->RequiredErrorMessage));
             }
         }
@@ -1109,7 +1115,14 @@ class CustomersAdd extends Customers
         $this->review->setDbValueDef($rsnew, $this->review->CurrentValue, false);
 
         // photo
-        $this->photo->setDbValueDef($rsnew, $this->photo->CurrentValue, false);
+        if ($this->photo->Visible && !$this->photo->Upload->KeepFile) {
+            $this->photo->Upload->DbValue = ""; // No need to delete old file
+            if ($this->photo->Upload->FileName == "") {
+                $rsnew['photo'] = null;
+            } else {
+                $rsnew['photo'] = $this->photo->Upload->FileName;
+            }
+        }
 
         // product_id
         $this->product_id->setDbValueDef($rsnew, $this->product_id->CurrentValue, false);
@@ -1124,6 +1137,47 @@ class CustomersAdd extends Customers
         // updated_at
         $this->updated_at->CurrentValue = $this->updated_at->getAutoUpdateValue(); // PHP
         $this->updated_at->setDbValueDef($rsnew, $this->updated_at->CurrentValue);
+        if ($this->photo->Visible && !$this->photo->Upload->KeepFile) {
+            $oldFiles = EmptyValue($this->photo->Upload->DbValue) ? [] : [$this->photo->htmlDecode($this->photo->Upload->DbValue)];
+            if (!EmptyValue($this->photo->Upload->FileName)) {
+                $newFiles = [$this->photo->Upload->FileName];
+                $NewFileCount = count($newFiles);
+                for ($i = 0; $i < $NewFileCount; $i++) {
+                    if ($newFiles[$i] != "") {
+                        $file = $newFiles[$i];
+                        $tempPath = UploadTempPath($this->photo, $this->photo->Upload->Index);
+                        if (file_exists($tempPath . $file)) {
+                            if (Config("DELETE_UPLOADED_FILES")) {
+                                $oldFileFound = false;
+                                $oldFileCount = count($oldFiles);
+                                for ($j = 0; $j < $oldFileCount; $j++) {
+                                    $oldFile = $oldFiles[$j];
+                                    if ($oldFile == $file) { // Old file found, no need to delete anymore
+                                        array_splice($oldFiles, $j, 1);
+                                        $oldFileFound = true;
+                                        break;
+                                    }
+                                }
+                                if ($oldFileFound) { // No need to check if file exists further
+                                    continue;
+                                }
+                            }
+                            $file1 = UniqueFilename($this->photo->physicalUploadPath(), $file); // Get new file name
+                            if ($file1 != $file) { // Rename temp file
+                                while (file_exists($tempPath . $file1) || file_exists($this->photo->physicalUploadPath() . $file1)) { // Make sure no file name clash
+                                    $file1 = UniqueFilename([$this->photo->physicalUploadPath(), $tempPath], $file1, true); // Use indexed name
+                                }
+                                rename($tempPath . $file, $tempPath . $file1);
+                                $newFiles[$i] = $file1;
+                            }
+                        }
+                    }
+                }
+                $this->photo->Upload->DbValue = empty($oldFiles) ? "" : implode(Config("MULTIPLE_UPLOAD_SEPARATOR"), $oldFiles);
+                $this->photo->Upload->FileName = implode(Config("MULTIPLE_UPLOAD_SEPARATOR"), $newFiles);
+                $this->photo->setDbValueDef($rsnew, $this->photo->Upload->FileName, false);
+            }
+        }
 
         // Update current values
         $this->setCurrentValues($rsnew);
@@ -1147,6 +1201,30 @@ class CustomersAdd extends Customers
         if ($insertRow) {
             $addRow = $this->insert($rsnew);
             if ($addRow) {
+                if ($this->photo->Visible && !$this->photo->Upload->KeepFile) {
+                    $oldFiles = EmptyValue($this->photo->Upload->DbValue) ? [] : [$this->photo->htmlDecode($this->photo->Upload->DbValue)];
+                    if (!EmptyValue($this->photo->Upload->FileName)) {
+                        $newFiles = [$this->photo->Upload->FileName];
+                        $newFiles2 = [$this->photo->htmlDecode($rsnew['photo'])];
+                        $newFileCount = count($newFiles);
+                        for ($i = 0; $i < $newFileCount; $i++) {
+                            if ($newFiles[$i] != "") {
+                                $file = UploadTempPath($this->photo, $this->photo->Upload->Index) . $newFiles[$i];
+                                if (file_exists($file)) {
+                                    if (@$newFiles2[$i] != "") { // Use correct file name
+                                        $newFiles[$i] = $newFiles2[$i];
+                                    }
+                                    if (!$this->photo->Upload->SaveToFile($newFiles[$i], true, $i)) { // Just replace
+                                        $this->setFailureMessage($Language->phrase("UploadError7"));
+                                        return false;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        $newFiles = [];
+                    }
+                }
             } elseif (!EmptyValue($this->DbErrorMessage)) { // Show database error
                 $this->setFailureMessage($this->DbErrorMessage);
             }

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<ew-language version="19.13.0" id="en-US" name="English (US)" desc="English (US)" author="e.World Technology Limited" date="2023/5/16">
+<ew-language version="19.13.0" id="en-US" name="English (US)" desc="English (US)" author="e.World Technology Limited" date="2023/5/17">
   <!--
     IMPORTANT NOTES:
     1. Language ID must be RFC 4646 language tags (which use hyphen, not underscore), e.g. en-US, fr-CA, fr-FR,
@@ -1491,16 +1491,16 @@
         <phrase id="fldcaption" value="id" />
       </field>
       <field id="name">
-        <phrase id="fldcaption" value="name" />
+        <phrase id="fldcaption" value="Nama" />
       </field>
       <field id="slug">
         <phrase id="fldcaption" value="slug" />
       </field>
       <field id="review">
-        <phrase id="fldcaption" value="review" />
+        <phrase id="fldcaption" value="Review" />
       </field>
       <field id="photo">
-        <phrase id="fldcaption" value="photo" />
+        <phrase id="fldcaption" value="Foto" />
       </field>
       <field id="product_id">
         <phrase id="fldcaption" value="product id" />

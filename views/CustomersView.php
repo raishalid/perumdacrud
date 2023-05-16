@@ -103,7 +103,8 @@ loadjs.ready(["wrapper", "head"], function () {
         <td data-name="photo"<?= $Page->photo->cellAttributes() ?>>
 <span id="el_customers_photo">
 <span<?= $Page->photo->viewAttributes() ?>>
-<?= $Page->photo->getViewValue() ?></span>
+<?= GetFileViewTag($Page->photo, $Page->photo->getViewValue(), false) ?>
+</span>
 </span>
 </td>
     </tr>

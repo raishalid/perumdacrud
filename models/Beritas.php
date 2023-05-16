@@ -321,7 +321,7 @@ class Beritas extends DbTable
             'IMAGE', // View Tag
             'FILE' // Edit Tag
         );
-        $this->gbr_berita->addMethod("getUploadPath", fn() => '/images/berita');
+        $this->gbr_berita->addMethod("getUploadPath", fn() => '../images/gbrberita');
         $this->gbr_berita->InputTextType = "text";
         $this->gbr_berita->Nullable = false; // NOT NULL field
         $this->gbr_berita->Required = true; // Required field

@@ -192,6 +192,7 @@ class ProjectFiles extends DbTable
             'FORMATTED TEXT', // View Tag
             'FILE' // Edit Tag
         );
+        $this->file_path->addMethod("getUploadPath", fn() => '../files');
         $this->file_path->InputTextType = "text";
         $this->file_path->SearchOperators = ["=", "<>", "STARTS WITH", "NOT STARTS WITH", "LIKE", "NOT LIKE", "ENDS WITH", "NOT ENDS WITH", "IS EMPTY", "IS NOT EMPTY", "IS NULL", "IS NOT NULL"];
         $this->Fields['file_path'] = &$this->file_path;
@@ -856,6 +857,7 @@ class ProjectFiles extends DbTable
     public function deleteUploadedFiles($row)
     {
         $this->loadDbValues($row);
+        $this->file_path->OldUploadPath = $this->file_path->getUploadPath(); // PHP
         $oldFiles = EmptyValue($row['file_path']) ? [] : [$row['file_path']];
         foreach ($oldFiles as $oldFile) {
             if (file_exists($this->file_path->oldPhysicalUploadPath() . $oldFile)) {
@@ -1297,6 +1299,7 @@ class ProjectFiles extends DbTable
         $this->file_name->ViewValue = $this->file_name->CurrentValue;
 
         // file_path
+        $this->file_path->UploadPath = $this->file_path->getUploadPath(); // PHP
         if (!EmptyValue($this->file_path->Upload->DbValue)) {
             $this->file_path->ViewValue = $this->file_path->Upload->DbValue;
         } else {
@@ -1408,6 +1411,7 @@ class ProjectFiles extends DbTable
 
         // file_path
         $this->file_path->setupEditAttributes();
+        $this->file_path->UploadPath = $this->file_path->getUploadPath(); // PHP
         if (!EmptyValue($this->file_path->Upload->DbValue)) {
             $this->file_path->EditValue = $this->file_path->Upload->DbValue;
         } else {

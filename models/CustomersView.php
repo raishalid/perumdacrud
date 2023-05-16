@@ -735,7 +735,8 @@ class CustomersView extends Customers
         $this->name->setDbValue($row['name']);
         $this->slug->setDbValue($row['slug']);
         $this->review->setDbValue($row['review']);
-        $this->photo->setDbValue($row['photo']);
+        $this->photo->Upload->DbValue = $row['photo'];
+        $this->photo->setDbValue($this->photo->Upload->DbValue);
         $this->product_id->setDbValue($row['product_id']);
         $this->service_id->setDbValue($row['service_id']);
         $this->created_at->setDbValue($row['created_at']);
@@ -809,7 +810,11 @@ class CustomersView extends Customers
             $this->review->ViewValue = $this->review->CurrentValue;
 
             // photo
-            $this->photo->ViewValue = $this->photo->CurrentValue;
+            if (!EmptyValue($this->photo->Upload->DbValue)) {
+                $this->photo->ViewValue = $this->photo->Upload->DbValue;
+            } else {
+                $this->photo->ViewValue = "";
+            }
 
             // product_id
             $this->product_id->ViewValue = $this->product_id->CurrentValue;
@@ -845,6 +850,7 @@ class CustomersView extends Customers
 
             // photo
             $this->photo->HrefValue = "";
+            $this->photo->ExportHrefValue = $this->photo->UploadPath . $this->photo->Upload->DbValue;
             $this->photo->TooltipValue = "";
 
             // product_id
