@@ -35,16 +35,16 @@ function GetStartsWithAFilter($FldExpression, $dbid = 0)
 // Database Connecting event
 function Database_Connecting(&$info)
 {
-    if (CurrentUserIP() == "127.0.0.1") { // setting koneksi database di komputer localhost
+    if (CurrentUserIP() != "127.0.0.1") { // setting koneksi database di komputer localhost
         $info["host"] = "localhost";
-        $info["user"] = "root"; // sesuaikan dengan username database di komputer localhost
-        $info["pass"] = ""; // sesuaikan dengan password database di komputer localhost
-        $info["db"] = "perumdautama"; // sesuaikan dengan nama database di komputer localhost
-    } else { // setting koneksi database untuk komputer server
-        $info["host"] = "perumdautama.com";  // sesuaikan dengan ip address atau hostname komputer server
-        $info["user"] = "u3491477_u3491477"; // sesuaikan dengan username database di komputer server
-        $info["pass"] = "oY?B44J,%Tv-"; // sesuaikan deengan password database di komputer server
-        $info["db"] = "u3491477_perumdautama"; // sesuaikan dengan nama database di komputer server
+        $info["user"] = "u3491477_u3491477"; // sesuaikan dengan username database di komputer localhost
+        $info["pass"] = "oY?B44J,%Tv-"; // sesuaikan dengan password database di komputer localhost
+        $info["db"] = "u3491477_perumdautama"; // sesuaikan dengan nama database di komputer localhost
+    // } else { // setting koneksi database untuk komputer server
+    //     $info["host"] = "perumdautama.com";  // sesuaikan dengan ip address atau hostname komputer server
+    //     $info["user"] = "u3491477_u3491477"; // sesuaikan dengan username database di komputer server
+    //     $info["pass"] = "oY?B44J,%Tv-"; // sesuaikan deengan password database di komputer server
+    //     $info["db"] = "u3491477_perumdautama"; // sesuaikan dengan nama database di komputer server
     }
 }
 
